@@ -1,0 +1,2 @@
+# Runtime dependencies
+websocket-client>=1.5.1
