@@ -74,4 +74,3 @@ Utilities for configuration and examples live in `config.py` and the
 
 Open a PR with changes. Tests should pass and code should be formatted with
 your preferred tools.
-# de-streaming-pipeline
