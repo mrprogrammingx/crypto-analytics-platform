@@ -70,6 +70,55 @@ Utilities for configuration and examples live in `config.py` and the
 	WebSocket to Binance and prints trade messages. It exposes a
 	`run_binance_socket()` function and an `on_message()` handler.
 
+## Kafka integration
+
+This repository now includes a small Kafka-based ingestion example (producer
+and consumer) and a `docker-compose.yml` to run a local Zookeeper + Kafka
+broker for development.
+
+Quick steps to run locally:
+
+1. Start Kafka & Zookeeper in the background (uses the included
+	`docker-compose.yml`):
+
+```bash
+docker-compose up -d
+```
+
+2. Verify Kafka is running and list topics:
+
+```bash
+docker exec -it kafka kafka-topics --list --bootstrap-server localhost:9092
+```
+
+3. Install the Python dependency for Kafka (if not already installed):
+
+```bash
+source .venv/bin/activate
+pip install kafka-python
+```
+
+4. Run the producer (runs the Binance websocket and sends formatted trade
+	events to topic `btc_trades`). Run it as a module so package imports work:
+
+```bash
+# from the repository root, with venv activated
+python -m ingestion.kafka_producer
+```
+
+5. Run the consumer to read messages from `btc_trades`:
+
+```bash
+python -m ingestion.kafka_consumer
+```
+
+Notes and tips
+- The producer/consumer use `kafka-python`. Consider adding `kafka-python` to
+  `requirements.txt` so others can install all runtime deps with `pip install -r requirements.txt`.
+- Avoid running the scripts directly (e.g. `python ingestion/kafka_producer.py`) — run them via `-m` to ensure package-relative imports resolve.
+- If you don't want to run Kafka locally, you can run `python -m ingestion.binance_websocket` to print trade messages to stdout for testing.
+- Tests that exercise Kafka may produce verbose Docker logs; run unit tests individually to limit noise (e.g. `pytest tests/test_ingestion.py`).
+
 ## Contributing
 
 Open a PR with changes. Tests should pass and code should be formatted with
