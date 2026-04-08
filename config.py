@@ -69,12 +69,22 @@ class Config:
     BINANCE_API_KEY: Optional[str] = os.getenv("BINANCE_API_KEY")
     BINANCE_API_SECRET: Optional[str] = os.getenv("BINANCE_API_SECRET")
     # Add other exchange API keys below as needed
+    # BigQuery / GCP project
+    BIGQUERY_TABLE_ID: str = os.getenv("BIGQUERY_TABLE_ID", "crypto_analytics.btc_trades")
+    # Prefer a general project name used across Google Cloud libraries.
+    # Resolution order: GOOGLE_CLOUD_PROJECT -> GCP_PROJECT -> BIGQUERY_PROJECT
+    GOOGLE_CLOUD_PROJECT: Optional[str] = (
+        os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT") or os.getenv("BIGQUERY_PROJECT")
+    )
+
 
     # Observability / email
     SENTRY_DSN: Optional[str] = os.getenv("SENTRY_DSN")
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     SMTP_HOST: Optional[str] = os.getenv("SMTP_HOST")
     SMTP_PORT: Optional[str] = os.getenv("SMTP_PORT")
+    GCS_BUCKET_NAME: Optional[str] = os.getenv("GCS_BUCKET_NAME")
+    BATCH_SIZE: Optional[str] = os.getenv("BATCH_SIZE")
 
 
 def load_config(env_path: str = ".env", override_env: bool = False) -> Config:
@@ -84,7 +94,31 @@ def load_config(env_path: str = ".env", override_env: bool = False) -> Config:
     - override_env: if True, override current environment variables from file
     """
     load_dotenv(env_path, override=override_env)
-    return Config()
+    # Build a Config instance from the current environment so values loaded
+    # from .env are reflected at call time (dataclass defaults are evaluated
+    # at import time, so we construct the instance here).
+    return Config(
+        APP_ENV=os.getenv("APP_ENV", "development"),
+        APP_HOST=os.getenv("APP_HOST", "0.0.0.0"),
+        APP_PORT=int(os.getenv("APP_PORT", "8000")),
+        SECRET_KEY=os.getenv("SECRET_KEY"),
+        JWT_SECRET=os.getenv("JWT_SECRET"),
+        DATABASE_URL=os.getenv("DATABASE_URL"),
+        REDIS_URL=os.getenv("REDIS_URL"),
+        MAX_WORKERS=int(os.getenv("MAX_WORKERS", "4")),
+        REQUEST_TIMEOUT=int(os.getenv("REQUEST_TIMEOUT", "10")),
+        COINMARKETCAP_API_KEY=os.getenv("COINMARKETCAP_API_KEY"),
+        BINANCE_API_KEY=os.getenv("BINANCE_API_KEY"),
+        BINANCE_API_SECRET=os.getenv("BINANCE_API_SECRET"),
+        BIGQUERY_TABLE_ID=os.getenv("BIGQUERY_TABLE_ID", "crypto_analytics.btc_trades"),
+        GOOGLE_CLOUD_PROJECT=(os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT")),
+        SENTRY_DSN=os.getenv("SENTRY_DSN"),
+        LOG_LEVEL=os.getenv("LOG_LEVEL", "INFO"),
+        SMTP_HOST=os.getenv("SMTP_HOST"),
+        SMTP_PORT=os.getenv("SMTP_PORT"),
+        GCS_BUCKET_NAME=os.getenv("GCS_BUCKET_NAME"),
+        BATCH_SIZE=os.getenv("BATCH_SIZE"),
+    )
 
 
 __all__ = ["load_dotenv", "Config", "load_config"]
