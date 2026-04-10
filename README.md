@@ -138,6 +138,49 @@ The script reads `GOOGLE_CLOUD_PROJECT` and `BIGQUERY_TABLE_ID` from your `.env`
 environment). It's safe to run repeatedly — it will only create resources when
 they're missing.
 
+DuckDB loader
+---------------
+
+This project also includes a small DuckDB loader that can ingest the same
+Parquet files from GCS into a local DuckDB file for fast local analysis.
+
+- `loaders/duckdb_loader.py` — downloads Parquet objects from GCS and inserts
+	them into DuckDB tables (it also records which files were already loaded so
+	reruns are idempotent).
+
+Key environment variables (see `.env.example`):
+
+- `DUCKDB_DATABASE` — path to the DuckDB file (default: `analytics.duckdb`).
+- `DUCKDB_LIMIT` — optional integer to limit the number of files processed (useful for dry-runs and testing).
+- `BIGQUERY_DATASET`, `BIGQUERY_TABLE_BTC_TRADES`, `BIGQUERY_TRACKING_TABLE` — centralized table naming used by both BigQuery and DuckDB loaders.
+
+Notes about behavior:
+
+- The loader downloads each Parquet file using the `google-cloud-storage` client
+	(uses your Application Default Credentials) and then reads the local Parquet
+	file with DuckDB. This avoids configuring DuckDB HTTPFS credentials and is
+	robust across environments.
+- Some Parquet files store timestamps as integer epoch milliseconds. The loader
+	detects this and automatically retries the insert using a conversion
+	(to_timestamp(timestamp/1000)).
+
+Running the DuckDB loader (dry-run/test):
+
+```bash
+# limit to 5 files for a safe test
+DUCKDB_LIMIT=5 PYTHONPATH=. .venv/bin/python loaders/duckdb_loader.py
+```
+
+To run the full load (may download many files):
+
+```bash
+PYTHONPATH=. .venv/bin/python loaders/duckdb_loader.py
+```
+
+If you prefer DuckDB to read directly from GCS (no intermediate download) you
+can configure DuckDB HTTPFS credentials; otherwise the download-based loader
+is the simplest, reliable approach.
+
 
 ## Contributing
 
