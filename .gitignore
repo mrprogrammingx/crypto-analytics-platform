@@ -143,6 +143,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+warehouse/
 
 # Spyder project settings
 .spyderproject

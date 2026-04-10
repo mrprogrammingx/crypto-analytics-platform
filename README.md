@@ -138,6 +138,59 @@ The script reads `GOOGLE_CLOUD_PROJECT` and `BIGQUERY_TABLE_ID` from your `.env`
 environment). It's safe to run repeatedly — it will only create resources when
 they're missing.
 
+BigQuery loader
+---------------
+
+The repository includes a small BigQuery loader that moves Parquet files stored
+in GCS into a BigQuery table used by the ingestion pipeline.
+
+- `loaders/bigquery_loader.py` — loads one or more Parquet files from GCS into
+	BigQuery. It expects the project/dataset/table configuration to be available
+	via the project's config loader (see `.env.example`).
+
+Key behaviors and env vars
+
+- Idempotency: the loader records which Parquet object URIs have been loaded in
+	a tracking table (configurable via `BIGQUERY_TRACKING_TABLE`). On subsequent
+	runs it filters out files that were already recorded so you don't accidentally
+	reload the same file twice.
+- Wildcard expansion: if you provide a GCS prefix or wildcard, the loader will
+	pre-list matching objects and expand the wildcard to an explicit list of
+	`gs://...` URIs before submitting the BigQuery load job (this avoids
+	NotFound/NotAuthorized errors when passing wildcards directly).
+- Important env vars: `GOOGLE_CLOUD_PROJECT`, `GOOGLE_APPLICATION_CREDENTIALS`
+	(or ADC), and the centralized table names `BIGQUERY_DATASET`,
+	`BIGQUERY_TABLE_BTC_TRADES`, and `BIGQUERY_TRACKING_TABLE` (see `.env.example`).
+
+Creating the tracking table
+
+The loader expects the tracking table to exist. You can create it with the
+helper script included in this repo:
+
+```bash
+# from the repository root
+PYTHONPATH=. .venv/bin/python scripts/create_bigquery_table.py --tracking
+```
+
+Running the loader
+
+Quick test (safe): limit your GCS prefix to a small set of objects and run:
+
+```bash
+# from the repository root (with venv activated)
+PYTHONPATH=. .venv/bin/python loaders/bigquery_loader.py
+```
+
+Notes & recommendations
+
+- The loader implements file-level idempotency by tracking processed object
+	URIs. For production workloads that may reprocess data frequently, consider
+	adding row-level deduplication (e.g., load to a staging table and `MERGE`
+	into the final table) to guarantee no duplicate rows at the record level.
+- If you run into permission errors, ensure your ADC or `GOOGLE_APPLICATION_CREDENTIALS`
+	is configured and that the service account has `roles/storage.objectViewer`
+	and the BigQuery load permissions for the target dataset/table.
+
 DuckDB loader
 ---------------
 
