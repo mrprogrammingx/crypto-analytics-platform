@@ -119,6 +119,26 @@ Notes and tips
 - If you don't want to run Kafka locally, you can run `python -m ingestion.binance_websocket` to print trade messages to stdout for testing.
 - Tests that exercise Kafka may produce verbose Docker logs; run unit tests individually to limit noise (e.g. `pytest tests/test_ingestion.py`).
 
+## BigQuery helpers
+
+The repository contains a small helper script to create a BigQuery dataset and
+table used by the ingestion pipeline:
+
+- `scripts/create_bigquery_table.py` — creates the dataset (if missing) and a
+	`btc_trades` table with a simple schema (symbol, price, quantity, timestamp).
+
+Usage:
+
+```bash
+# from the repository root
+PYTHONPATH=. .venv/bin/python scripts/create_bigquery_table.py
+```
+
+The script reads `GOOGLE_CLOUD_PROJECT` and `BIGQUERY_TABLE_ID` from your `.env` (or
+environment). It's safe to run repeatedly — it will only create resources when
+they're missing.
+
+
 ## Contributing
 
 Open a PR with changes. Tests should pass and code should be formatted with
