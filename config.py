@@ -63,6 +63,8 @@ class Config:
     REDIS_URL: Optional[str] = os.getenv("REDIS_URL")
     MAX_WORKERS: int = int(os.getenv("MAX_WORKERS", "4"))
     REQUEST_TIMEOUT: int = int(os.getenv("REQUEST_TIMEOUT", "10"))
+    # Local analytics DB used by DuckDB loader (file path)
+    DUCKDB_DATABASE: Optional[str] = os.getenv("DUCKDB_DATABASE")
 
     # External APIs
     COINMARKETCAP_API_KEY: Optional[str] = os.getenv("COINMARKETCAP_API_KEY")
@@ -76,6 +78,11 @@ class Config:
     GOOGLE_CLOUD_PROJECT: Optional[str] = (
         os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT") or os.getenv("BIGQUERY_PROJECT")
     )
+    # Centralized BigQuery naming (dataset and common table names).
+    # Use these to avoid hard-coding table names across the codebase.
+    BIGQUERY_DATASET: str = os.getenv("BIGQUERY_DATASET", "crypto_analytics")
+    BIGQUERY_TABLE_BTC_TRADES: str = os.getenv("BIGQUERY_TABLE_BTC_TRADES", "btc_trades")
+    BIGQUERY_TRACKING_TABLE: str = os.getenv("BIGQUERY_TRACKING_TABLE", "loaded_files")
 
 
     # Observability / email
@@ -107,11 +114,15 @@ def load_config(env_path: str = ".env", override_env: bool = False) -> Config:
         REDIS_URL=os.getenv("REDIS_URL"),
         MAX_WORKERS=int(os.getenv("MAX_WORKERS", "4")),
         REQUEST_TIMEOUT=int(os.getenv("REQUEST_TIMEOUT", "10")),
+        DUCKDB_DATABASE=os.getenv("DUCKDB_DATABASE"),
         COINMARKETCAP_API_KEY=os.getenv("COINMARKETCAP_API_KEY"),
         BINANCE_API_KEY=os.getenv("BINANCE_API_KEY"),
         BINANCE_API_SECRET=os.getenv("BINANCE_API_SECRET"),
         BIGQUERY_TABLE_ID=os.getenv("BIGQUERY_TABLE_ID", "crypto_analytics.btc_trades"),
-        GOOGLE_CLOUD_PROJECT=(os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT")),
+    GOOGLE_CLOUD_PROJECT=(os.getenv("GOOGLE_CLOUD_PROJECT") or os.getenv("GCP_PROJECT")),
+    BIGQUERY_DATASET=os.getenv("BIGQUERY_DATASET", "crypto_analytics"),
+    BIGQUERY_TABLE_BTC_TRADES=os.getenv("BIGQUERY_TABLE_BTC_TRADES", "btc_trades"),
+    BIGQUERY_TRACKING_TABLE=os.getenv("BIGQUERY_TRACKING_TABLE", "loaded_files"),
         SENTRY_DSN=os.getenv("SENTRY_DSN"),
         LOG_LEVEL=os.getenv("LOG_LEVEL", "INFO"),
         SMTP_HOST=os.getenv("SMTP_HOST"),
