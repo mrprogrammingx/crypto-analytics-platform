@@ -65,3 +65,40 @@ set -a && source ../.env && set +a && .venv/bin/dbt test --profiles-dir .
 ```
 
 The Makefile/wrapper will automatically source the repository `.env` and prefer the project's virtualenv dbt binary.
+
+Manual invocation
+-----------------
+
+If you ever need to run dbt manually (for debugging or CI-less environments) the full command we use under the hood is shown below. You can copy/paste it and change the dbt subcommand (for example `docs generate`, `run` or `test`) as needed.
+
+Explanation: the command does three things:
+
+- `set -a && source ../.env && set +a` — load all variables from the repo `.env` and export them to the environment for the following command.
+- `.venv/bin/dbt` — run the dbt binary from the project's virtualenv (preferred so versions match the repo).
+- `--profiles-dir .` — tell dbt to load `profiles.yml` from the project directory instead of the default `~/.dbt` (useful for local development).
+
+Examples (zsh / bash):
+
+Generate docs:
+
+```
+set -a && source ../.env && set +a && .venv/bin/dbt docs generate --profiles-dir .
+```
+
+Run models:
+
+```
+set -a && source ../.env && set +a && .venv/bin/dbt run --profiles-dir .
+```
+
+Run tests:
+
+```
+set -a && source ../.env && set +a && .venv/bin/dbt test --profiles-dir .
+```
+
+Notes:
+
+- You don't normally need this long command because the repository provides `make dbt-run`, `make dbt-test` and `scripts/run_dbt.sh` which automatically source `.env` and prefer the repo `.venv`.
+- If you keep your credentials in another location, change the `source ../.env` part to point to your credentials file or use `GOOGLE_APPLICATION_CREDENTIALS` instead.
+- Avoid committing secrets; keep `.env` in `.gitignore`.
