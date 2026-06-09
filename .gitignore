@@ -147,6 +147,7 @@ warehouse/
 
 # Ignore local dbt profiles
 crypto_analytics_dbt/profiles.yml
+crypto_analytics_dbt/.user.yml
 
 # Spyder project settings
 .spyderproject
