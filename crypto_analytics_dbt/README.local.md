@@ -40,3 +40,28 @@ cp crypto_analytics_dbt/profiles.yml.example crypto_analytics_dbt/profiles.yml
 ```
 
 If you create a local `profiles.yml`, consider adding it to your global or project `.gitignore` so secrets are not committed.
+
+Running tests
+-------------
+
+You can run dbt's tests (data tests and schema tests) locally without manually sourcing `.env` by using the helper script or Makefile target.
+
+- Recommended (shortcut):
+
+```
+make dbt-test
+```
+
+- Using the wrapper directly:
+
+```
+bash scripts/run_dbt.sh test
+```
+
+- If you prefer to run dbt directly (not recommended for daily use):
+
+```
+set -a && source ../.env && set +a && .venv/bin/dbt test --profiles-dir .
+```
+
+The Makefile/wrapper will automatically source the repository `.env` and prefer the project's virtualenv dbt binary.
