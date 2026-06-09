@@ -17,6 +17,7 @@ crypto_analytics_dbt:
 # set `target: duck`.
     duck:
       type: duckdb
-      path: "{{ env_var('DUCKDB_DATABASE', 'analytics.duckdb') }}"
+      # default path points to the repo's main warehouse DuckDB file
+      path: "{{ env_var('DUCKDB_DATABASE', 'warehouse/analytics.duckdb') }}"
       threads: 1
       extensions: []

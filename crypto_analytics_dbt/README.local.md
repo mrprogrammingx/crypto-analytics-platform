@@ -41,6 +41,17 @@ cp crypto_analytics_dbt/profiles.yml.example crypto_analytics_dbt/profiles.yml
 
 If you create a local `profiles.yml`, consider adding it to your global or project `.gitignore` so secrets are not committed.
 
+Main DuckDB warehouse
+---------------------
+
+This repo includes a primary DuckDB warehouse file under `warehouse/analytics.duckdb` (ignored by git). If you want to run dbt locally against the same file, set the `DUCKDB_DATABASE` environment variable to point to it. Example from the repo root:
+
+```
+DUCKDB_DATABASE=warehouse/analytics.duckdb .venv/bin/dbt run --profiles-dir crypto_analytics_dbt
+```
+
+For local quick tests you can also create a temporary DB (e.g. `duck_test.duckdb`) and set `BIGQUERY_TABLE_ID` to the table name inside it (for example `btc_trades`) so staging models compile against local data.
+
 Running tests
 -------------
 
