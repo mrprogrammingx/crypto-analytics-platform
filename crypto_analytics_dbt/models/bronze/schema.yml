@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: bronze_btc_prices
+    columns:
+      - name: event_time
+        tests:
+          - not_null
+
+      - name: symbol
+        tests:
+          - not_null
+
+      - name: price
+        tests:
+          - not_null
+
+      - name: quantity
+        tests:
+          - not_null

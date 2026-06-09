@@ -1,0 +1,25 @@
+version: 2
+
+models:
+  - name: silver_market_metrics
+    description: "Aggregated market metrics by symbol and trade_date"
+    columns:
+      - name: symbol
+        tests:
+          - not_null
+
+      - name: trade_date
+        tests:
+          - not_null
+
+      - name: avg_price
+        tests:
+          - not_null
+
+      - name: total_quantity
+        tests:
+          - not_null
+
+    # For multi-column uniqueness (symbol + trade_date) consider adding a
+    # custom generic test or a SQL test. Skipping composite unique here to
+    # avoid adapter/generic-test argument limitations.

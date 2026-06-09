@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: gold_daily_summary
+    description: "Daily market summary (aggregated across symbols)"
+    columns:
+      - name: trade_date
+        tests:
+          - not_null
+          - unique
+
+      - name: market_avg_price
+        tests:
+          - not_null
+
+      - name: market_quantity
+        tests:
+          - not_null
+
+    # composite/ model-level unique constraints can require a custom test.
+    # trade_date uniqueness is enforced via the column-level `unique` test above.
