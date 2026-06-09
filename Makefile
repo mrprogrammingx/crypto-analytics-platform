@@ -25,3 +25,11 @@ export-lineage: dbt-docs-generate
 	@./crypto_analytics_dbt/.venv/bin/python scripts/export_lineage_png.py --out assets/lineage_graph_spring.png --layout spring --width 10 --height 6 --dpi 120 --k 0.3
 	@./crypto_analytics_dbt/.venv/bin/python scripts/export_lineage_png.py --out assets/lineage_graph_dot.png --layout dot --width 12 --height 9 --dpi 130 --prog dot
 
+.PHONY: dbt-run-copy
+dbt-run-copy:
+	@bash scripts/run_dbt_with_copy.sh
+
+.PHONY: dbt-test-copy
+dbt-test-copy:
+	@bash scripts/run_dbt_with_copy.sh test
+
