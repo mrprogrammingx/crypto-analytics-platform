@@ -10,3 +10,13 @@ crypto_analytics_dbt:
       threads: 1
       timeout_seconds: 300
       location: "{{ env_var('BIGQUERY_LOCATION', '') }}"
+
+# Optional: DuckDB local profile for fast local development and CI that does
+# not require GCP credentials. To use locally, copy this block into your
+# user `~/.dbt/profiles.yml` or edit `crypto_analytics_dbt/profiles.yml` and
+# set `target: duck`.
+    duck:
+      type: duckdb
+      path: "{{ env_var('DUCKDB_DATABASE', 'analytics.duckdb') }}"
+      threads: 1
+      extensions: []

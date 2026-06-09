@@ -29,7 +29,14 @@ jobs:
 
       - name: Install dbt core and bigquery adapter
         run: |
-          pip install dbt-core==1.11.0 dbt-bigquery==1.11.0
+          pip install dbt-core==1.11.0 dbt-bigquery==1.11.0 dbt-duckdb==1.11.0
+
+      - name: Run dbt tests using DuckDB (fast, no GCP required)
+        run: |
+          cd crypto_analytics_dbt
+          # switch to the duck target defined in profiles.yml
+          dbt --version
+          dbt test --profiles-dir . --target duck || echo 'duck dbt tests failed (non-fatal)'
 
       - name: Prepare Google credentials (optional)
         if: ${{ secrets.GCP_SA_KEY != '' }}
