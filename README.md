@@ -70,6 +70,17 @@ Utilities for configuration and examples live in `config.py` and the
 	WebSocket to Binance and prints trade messages. It exposes a
 	`run_binance_socket()` function and an `on_message()` handler.
 
+Local dbt development
+---------------------
+
+This repository includes a dbt project for transformations located in
+`crypto_analytics_dbt`. For local development the project provides a
+convenience README with instructions, a wrapper script (`scripts/run_dbt.sh`)
+that sources the repository `.env`, and Makefile targets (`make dbt-run`,
+`make dbt-test`, `make dbt-docs`) which prefer the project's `.venv`.
+
+See `crypto_analytics_dbt/README.local.md` for full details and examples.
+
 ## Kafka integration
 
 This repository now includes a small Kafka-based ingestion example (producer
