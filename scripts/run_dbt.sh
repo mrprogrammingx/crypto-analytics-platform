@@ -2,7 +2,11 @@
 set -euo pipefail
 
 # Script to run `dbt run` while automatically sourcing the repository .env
-# Usage: bash scripts/run_dbt.sh
+# Usage: bash scripts/run_dbt.sh [dbt-args]
+# Examples:
+#   bash scripts/run_dbt.sh           # runs `dbt run`
+#   bash scripts/run_dbt.sh test      # runs `dbt test`
+#   bash scripts/run_dbt.sh -- --profiles-dir . run --select my_model
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env"
@@ -26,4 +30,10 @@ if [ ! -x "$DBT_BIN" ]; then
 fi
 
 cd "$ROOT_DIR/crypto_analytics_dbt"
-exec "$DBT_BIN" run --profiles-dir .
+if [ "$#" -eq 0 ]; then
+  # default to run
+  exec "$DBT_BIN" run --profiles-dir .
+else
+  # pass through all args to dbt
+  exec "$DBT_BIN" "$@"
+fi
