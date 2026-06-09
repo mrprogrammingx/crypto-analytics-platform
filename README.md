@@ -296,6 +296,20 @@ dbt automatically builds a model dependency graph. The UI exposed by
 This is a great visual asset to include in a portfolio or to show during
 interviews — it clearly demonstrates the end-to-end transformation flow.
 
+Lineage PNGs
+------------
+
+Two exported lineage images are included in `assets/` for quick viewing:
+
+- `assets/lineage_graph_spring.png` — compact force-directed layout (spring layout) suitable for smaller thumbnails.
+- `assets/lineage_graph_dot.png` — graphviz 'dot' layout which emphasizes hierarchical dependencies.
+
+You can regenerate them locally with:
+
+```bash
+make export-lineage
+```
+
 Analytics Engineering
 ---------------------
 
