@@ -113,3 +113,36 @@ Notes:
 - You don't normally need this long command because the repository provides `make dbt-run`, `make dbt-test` and `scripts/run_dbt.sh` which automatically source `.env` and prefer the repo `.venv`.
 - If you keep your credentials in another location, change the `source ../.env` part to point to your credentials file or use `GOOGLE_APPLICATION_CREDENTIALS` instead.
 - Avoid committing secrets; keep `.env` in `.gitignore`.
+
+DuckDB (local development)
+--------------------------
+
+This project supports a `duck` target in `profiles.yml` for fast, credential-free local development using DuckDB. To set up your local dev environment for DuckDB:
+
+1. Create the project's virtualenv and install dev requirements (recommended):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r ../dev-requirements.txt
+```
+
+2. Run dbt against the repo DuckDB warehouse or an ephemeral copy. We provide a helper to avoid locking issues with GUI tools (DBeaver):
+
+```bash
+# preferred: run against a temporary copy to avoid file locks
+make dbt-run-copy
+# or run tests
+make dbt-test-copy
+```
+
+3. If you want to use the main warehouse file directly, set `DUCKDB_DATABASE` to the path (default in this repo is `warehouse/analytics.duckdb`):
+
+```bash
+DUCKDB_DATABASE=warehouse/analytics.duckdb .venv/bin/dbt run --profiles-dir .
+```
+
+Notes:
+- We pin `dbt-core` and `dbt-duckdb` in `dev-requirements.txt` for reproducible dev installs. Adjust versions if you upgrade dbt in CI.
+- If you want nicer Graphviz layouts for the lineage PNG, install Graphviz on your system and `pygraphviz` in the venv (may require system headers).
