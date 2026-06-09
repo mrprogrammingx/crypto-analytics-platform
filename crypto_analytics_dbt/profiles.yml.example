@@ -1,0 +1,12 @@
+crypto_analytics_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: bigquery
+      method: "{{ env_var('BIGQUERY_AUTH_METHOD', 'oauth') }}"
+      project: "{{ env_var('GOOGLE_CLOUD_PROJECT') }}"
+      dataset: "{{ env_var('BIGQUERY_DATASET') }}"
+      keyfile: "{{ env_var('GOOGLE_APPLICATION_CREDENTIALS', '') }}"
+      threads: 1
+      timeout_seconds: 300
+      location: "{{ env_var('BIGQUERY_LOCATION', '') }}"

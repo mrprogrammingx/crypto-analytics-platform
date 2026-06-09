@@ -145,6 +145,9 @@ env.bak/
 venv.bak/
 warehouse/
 
+# Ignore local dbt profiles
+crypto_analytics_dbt/profiles.yml
+
 # Spyder project settings
 .spyderproject
 .spyproject

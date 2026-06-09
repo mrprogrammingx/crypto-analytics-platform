@@ -21,3 +21,22 @@ bash scripts/run_dbt.sh
 ```
 
 The script will prefer `crypto_analytics_dbt/.venv/bin/dbt` if present, otherwise it falls back to a system `dbt` on PATH.
+
+profiles.yml example
+--------------------
+
+This repo includes `profiles.yml.example` which shows the expected dbt profile for this project. To use it locally:
+
+- Copy it to your user dbt profile location (recommended):
+
+```
+cp crypto_analytics_dbt/profiles.yml.example ~/.dbt/profiles.yml
+```
+
+- Or copy into the project and edit if you prefer:
+
+```
+cp crypto_analytics_dbt/profiles.yml.example crypto_analytics_dbt/profiles.yml
+```
+
+If you create a local `profiles.yml`, consider adding it to your global or project `.gitignore` so secrets are not committed.
