@@ -245,6 +245,105 @@ If you prefer DuckDB to read directly from GCS (no intermediate download) you
 can configure DuckDB HTTPFS credentials; otherwise the download-based loader
 is the simplest, reliable approach.
 
+Architecture
+------------
+
+This repository follows a simple analytics architecture designed for small to
+medium-sized data projects. The key goals are: simplicity, auditability, and
+repeatable transformations using dbt.
+
+Medallion Architecture
+----------------------
+
+We use a medallion (bronze/silver/gold) pattern for staged transformations:
+
+- Bronze: raw or lightly-transformed data from ingestion. In this repo the
+	`bronze` models materialize the initial cleaned records from Parquet objects
+	produced by the ingestion pipeline.
+- Silver: intermediate, canonical models that standardize types, perform
+	basic aggregations and quality checks (`models/silver`).
+- Gold: high-level business views and aggregated summaries for analytics and
+	reporting (`models/gold`).
+
+This structure keeps transformations modular and easier to test and reason
+about.
+
+dbt Transformations
+-------------------
+
+Transformations live in the dbt project at `crypto_analytics_dbt`. The dbt
+project contains `models/staging`, `models/bronze`, `models/silver`, and
+`models/gold` folders which correspond to the medallion layers above.
+
+Useful commands (from the repository root):
+
+```bash
+make dbt-run        # run models
+make dbt-test       # run schema & data tests
+make dbt-docs       # generate and serve docs locally
+```
+
+Lineage Graph
+-------------
+
+dbt automatically builds a model dependency graph. The UI exposed by
+`dbt docs serve` shows:
+
+- the lineage graph (downstream/upstream dependencies),
+- dependency tracking between models, and
+- model and column documentation (including schema tests).
+
+This is a great visual asset to include in a portfolio or to show during
+interviews — it clearly demonstrates the end-to-end transformation flow.
+
+Analytics Engineering
+---------------------
+
+Some notes on engineering practices used in this repo:
+
+- Modular dbt models: small, single-purpose models that are easy to test and
+	document.
+- Tests: schema and data tests live alongside models so quality checks run
+	with `dbt test`.
+- Idempotent loaders: BigQuery and DuckDB loaders record processed files in a
+	tracking table to avoid double-loading.
+- Local-first workflow: wrapper scripts and Makefile targets make it easy to
+	run dbt locally (recommended for development). Consider adding CI to run
+	tests and docs on push.
+
+CI and running dbt on a server
+-------------------------------
+
+Some dbt commands (notably `dbt test` against BigQuery and `dbt docs generate`)
+require access to Google Cloud credentials and the target BigQuery dataset. For
+this reason the Makefile/wrapper targets may not work out-of-the-box on a
+developer machine unless you have ADC or `GOOGLE_APPLICATION_CREDENTIALS` and
+the dataset configured locally.
+
+To provide a reproducible server-run of tests and docs this repository includes
+a GitHub Actions workflow: `.github/workflows/dbt-ci.yml`.
+
+What the workflow does:
+
+- Runs Python unit tests (`pytest`).
+- Installs `dbt-core` and the `dbt-bigquery` adapter and runs `dbt test`.
+- Generates the dbt docs (`dbt docs generate`) and uploads the generated
+	`crypto_analytics_dbt/target` directory as a workflow artifact.
+- On `main` the docs artifact is published to GitHub Pages (so docs can be
+	hosted publicly if you enable Pages for this repo).
+
+To run dbt tests/docs on CI you should add the following repository secrets
+in GitHub (Repository -> Settings -> Secrets):
+
+- `GCP_SA_KEY` — base64 or JSON string of a Google service account key with
+	permission to run BigQuery jobs and access the dataset.
+- `GOOGLE_CLOUD_PROJECT` and `BIGQUERY_DATASET` — values referenced by the
+	dbt `profiles.yml` in `crypto_analytics_dbt`.
+
+If you want, I can also add a helper workflow that only builds and uploads
+the docs (no tests) or a small script to export the lineage graph PNG and
+commit it to the repo for portfolio use.
+
 
 ## Contributing
 
