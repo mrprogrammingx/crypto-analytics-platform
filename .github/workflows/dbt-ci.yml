@@ -39,12 +39,17 @@ jobs:
           dbt test --profiles-dir . --target duck || echo 'duck dbt tests failed (non-fatal)'
 
       - name: Prepare Google credentials (optional)
-        if: ${{ secrets.GCP_SA_KEY != '' }}
-        run: |
-          echo "$GCP_SA_KEY" > /tmp/gcp-key.json
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
         env:
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          # Guard inside the shell to avoid using secrets in the 'if' expression
+          if [ -n "$GCP_SA_KEY" ]; then
+            echo "$GCP_SA_KEY" > /tmp/gcp-key.json
+            export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
+            echo "Configured GOOGLE_APPLICATION_CREDENTIALS"
+          else
+            echo "GCP_SA_KEY not provided; skipping GCP credentials setup."
+          fi
 
       - name: Run unit tests (pytest)
         run: |
