@@ -53,6 +53,8 @@ jobs:
           fi
 
       - name: Run unit tests (pytest)
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           pip install pytest
           pytest -q
@@ -60,8 +62,6 @@ jobs:
       - name: Run dbt tests
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
-          GOOGLE_CLOUD_PROJECT: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
-          BIGQUERY_DATASET: ${{ secrets.BIGQUERY_DATASET }}
         run: |
           cd crypto_analytics_dbt
           # dbt profiles.yml in this repo uses env_var(); we rely on CI env vars/secrets
