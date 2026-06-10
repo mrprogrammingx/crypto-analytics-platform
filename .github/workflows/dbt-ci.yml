@@ -27,9 +27,10 @@ jobs:
           pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
 
-      - name: Install dbt core and bigquery adapter
+      - name: Install dbt core and adapters (pinned for compatibility)
         run: |
-          pip install dbt-core==1.11.0 dbt-bigquery==1.11.0 dbt-duckdb==1.11.0
+          # Pin to the tested dbt version used in local development
+          pip install dbt-core==1.10.1 dbt-bigquery==1.10.1 dbt-duckdb==1.10.1
 
       - name: Run dbt tests using DuckDB (fast, no GCP required)
         run: |
