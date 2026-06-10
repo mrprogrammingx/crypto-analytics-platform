@@ -7,61 +7,54 @@ from config import load_config
 import fnmatch
 import datetime
 
-cfg = load_config()
-
-PROJECT_ID = cfg.GOOGLE_CLOUD_PROJECT
-bucket_name = cfg.GCS_BUCKET_NAME
+# Defer loading config and clients until runtime to keep module import-safe for tests
+cfg = None
+PROJECT_ID = None
+bucket_name = None
 # Centralized dataset/table names from config
-DATASET = cfg.BIGQUERY_DATASET
-TABLE = cfg.BIGQUERY_TABLE_BTC_TRADES
-TRACKING_TABLE = cfg.BIGQUERY_TRACKING_TABLE
+DATASET = None
+TABLE = None
+TRACKING_TABLE = None
 
-try:
-    # If the user provided a GCP project via env, pass it to the client constructor.
-    client_kwargs = {}
-    # Use the general project config if available (covers BigQuery/GCS/others)
-    if PROJECT_ID:
-        client_kwargs["project"] = PROJECT_ID
-    client = bigquery.Client(**client_kwargs)
-except Exception as exc:
-    print("Failed to create BigQuery client:", exc)
-    print("Make sure GOOGLE_APPLICATION_CREDENTIALS is set or that gcloud is authenticated, and set GOOGLE_CLOUD_PROJECT in .env if necessary.")
-    raise
+GCS_URI = None
+job_config = None
 
 
-# Build table_id from centralized config (fall back to BIGQUERY_TABLE_ID)
-if cfg.BIGQUERY_TABLE_ID:
-    table_id = cfg.BIGQUERY_TABLE_ID
-else:
-    # prefer project.dataset.table when project is set
-    if PROJECT_ID:
-        table_id = f"{PROJECT_ID}.{DATASET}.{TABLE}"
+def _init_runtime():
+    """Initialize config, clients, and job config at runtime. Returns a dict with runtime values."""
+    global cfg, PROJECT_ID, bucket_name, DATASET, TABLE, TRACKING_TABLE, GCS_URI, job_config
+    cfg = load_config()
+    PROJECT_ID = cfg.GOOGLE_CLOUD_PROJECT
+    bucket_name = cfg.GCS_BUCKET_NAME
+    DATASET = cfg.BIGQUERY_DATASET
+    TABLE = cfg.BIGQUERY_TABLE_BTC_TRADES
+    TRACKING_TABLE = cfg.BIGQUERY_TRACKING_TABLE
+
+    # Build table_id from centralized config (fall back to BIGQUERY_TABLE_ID)
+    if cfg.BIGQUERY_TABLE_ID:
+        table_id = cfg.BIGQUERY_TABLE_ID
     else:
-        table_id = f"{DATASET}.{TABLE}"
+        if PROJECT_ID:
+            table_id = f"{PROJECT_ID}.{DATASET}.{TABLE}"
+        else:
+            table_id = f"{DATASET}.{TABLE}"
 
-# GCS path (can be wildcard). Use TABLE value as the prefix directory.
-GCS_URI = f"gs://{bucket_name}/{TABLE}/year=*/month=*/day=*/*.parquet"
+    # GCS path (can be wildcard). Use TABLE value as the prefix directory.
+    GCS_URI = f"gs://{bucket_name}/{TABLE}/year=*/month=*/day=*/*.parquet"
 
-# Pre-check using the Storage client: ensure at least one object exists under the prefix
-try:
-    storage_client = storage.Client(project=PROJECT_ID) if PROJECT_ID else storage.Client()
-    prefix = "btc_trades/"
-    blobs = list(storage_client.list_blobs(bucket_name, prefix=prefix, max_results=1))
-    if not blobs:
-        print(f"No objects found in gs://{bucket_name}/{prefix}. Aborting load.")
-        raise SystemExit(1)
-    else:
-        print(f"Found object example: {blobs[0].name}")
-except Exception as exc:
-    print("Failed to list GCS objects (check credentials/permissions):", exc)
-    raise
+    job_config = bigquery.LoadJobConfig(
+        source_format=bigquery.SourceFormat.PARQUET,
+        write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
+    )
 
-job_config = bigquery.LoadJobConfig(
-    source_format=bigquery.SourceFormat.PARQUET,
-    write_disposition=bigquery.WriteDisposition.WRITE_APPEND,  # append data
-)
-
-print("🚀 Starting BigQuery Load Job...")
+    return {
+        "cfg": cfg,
+        "project_id": PROJECT_ID,
+        "bucket_name": bucket_name,
+        "table_id": table_id,
+        "gcs_uri": GCS_URI,
+        "job_config": job_config,
+    }
 
 
 def _get_tracking_table_id(dest_table_id: str, bq_client: bigquery.Client) -> str:
@@ -104,11 +97,24 @@ def _get_already_loaded_files(tracking_table_id: str, bq_client: bigquery.Client
 
 
 def main():
+    # Initialize runtime values and clients
+    runtime = _init_runtime()
+    project_id = runtime["project_id"]
+    bucket_name = runtime["bucket_name"]
+    table_id = runtime["table_id"]
+    gcs_uri = runtime["gcs_uri"]
+    job_cfg = runtime["job_config"]
+
+    # Create clients at runtime (may raise if credentials are missing)
+    client_kwargs = {}
+    if project_id:
+        client_kwargs["project"] = project_id
+    client = bigquery.Client(**client_kwargs)
+    storage_client = storage.Client(project=project_id) if project_id else storage.Client()
+
     uris_to_load = []
-    if "*" in GCS_URI:
-        # parse bucket and pattern
-        # GCS_URI is like 'gs://bucket/some/prefix/*/file-*.parquet'
-        uri_body = GCS_URI[len("gs://") :]
+    if "*" in gcs_uri:
+        uri_body = gcs_uri[len("gs://") :]
         first_slash = uri_body.find("/")
         if first_slash == -1:
             print("Invalid GCS_URI format")
@@ -137,7 +143,7 @@ def main():
 
         uris_to_load = matches
     else:
-        uris_to_load = [GCS_URI]
+        uris_to_load = [gcs_uri]
 
     # Prepare and ensure tracking table
     tracking_table_id = _get_tracking_table_id(table_id, client)
@@ -161,7 +167,7 @@ def main():
     load_job = client.load_table_from_uri(
         uris_to_load,
         table_id,
-        job_config=job_config,
+        job_config=job_cfg,
     )
 
     load_job.result()  # wait for job to complete
