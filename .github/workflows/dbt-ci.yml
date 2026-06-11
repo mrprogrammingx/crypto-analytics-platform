@@ -36,8 +36,8 @@ jobs:
       - name: Create DuckDB warehouse file (for docs/tests)
         run: |
           mkdir -p crypto_analytics_dbt/warehouse
-          # create an empty DuckDB file so dbt (duckdb adapter) can open it
-          touch crypto_analytics_dbt/warehouse/analytics.duckdb
+          # create a valid DuckDB file by creating a dummy table (duckdb is available after dbt-duckdb install)
+          python -c "import duckdb; duckdb.connect('crypto_analytics_dbt/warehouse/analytics.duckdb').execute('CREATE TABLE IF NOT EXISTS __init(dummy INTEGER);')"
 
       - name: Run dbt tests using DuckDB (fast, no GCP required)
         run: |
