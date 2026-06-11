@@ -72,14 +72,9 @@ def test_integration_loads_only_new_and_records(tmp_path):
     already = [f"gs://{bucket}/{blobs[0]}"]
     fake_bq = FakeBigQueryClient(project="fake-project", already_loaded=already)
 
-    bq_loader.storage_client = fake_storage
-    bq_loader.client = fake_bq
-
-    # Set GCS_URI to the wildcard pattern used by loader but for our fake bucket
-    bq_loader.GCS_URI = f"gs://{bucket}/btc_trades/year=*/month=*/day=*/*.parquet"
-
-    # Run main() — should load only the second file
-    bq_loader.main()
+    # Run main() with explicit overrides to avoid importing google-cloud libs
+    gcs_pattern = f"gs://{bucket}/btc_trades/year=*/month=*/day=*/*.parquet"
+    bq_loader.main(client_override=fake_bq, storage_client_override=fake_storage, gcs_uri_override=gcs_pattern)
 
     assert fake_bq.loaded_uris is not None
     assert len(fake_bq.loaded_uris) == 1
