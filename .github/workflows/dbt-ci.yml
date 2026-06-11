@@ -14,6 +14,7 @@ jobs:
       pages: write
     env:
       GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+      BIGQUERY_TABLE_ID: crypto_analytics.btc_trades
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
