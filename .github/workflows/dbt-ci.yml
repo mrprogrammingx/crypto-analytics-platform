@@ -12,6 +12,8 @@ jobs:
     permissions:
       contents: read
       pages: write
+    env:
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -43,25 +45,20 @@ jobs:
           pip install pytest
           pytest -q
 
-      - name: Prepare Google credentials (optional)
-        if: ${{ secrets.GCP_SA_KEY != '' }}
+      - name: Prepare Google credentials + install bigquery adapter + run BigQuery dbt tests (optional)
         run: |
-          echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > /tmp/gcp-key.json
-          echo "Wrote GCP key to /tmp/gcp-key.json"
-
-      - name: Install dbt bigquery adapter (optional)
-        if: ${{ secrets.GCP_SA_KEY != '' }}
-        run: |
-          pip install dbt-bigquery==1.10.1
-
-      - name: Run dbt tests (BigQuery)
-        if: ${{ secrets.GCP_SA_KEY != '' }}
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
-        run: |
-          if [ -f crypto_analytics_dbt/dbt_project.yml ]; then cd crypto_analytics_dbt; fi
-          dbt --version
-          dbt test --profiles-dir . || (echo 'dbt test failed' && exit 1)
+          if [ -n "${GCP_SA_KEY}" ]; then
+            echo "Detected GCP_SA_KEY in secrets; preparing BigQuery tests..."
+            echo "$GCP_SA_KEY" | base64 --decode > /tmp/gcp-key.json
+            echo "Wrote GCP key to /tmp/gcp-key.json"
+            python -m pip install dbt-bigquery==1.10.1
+            export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
+            if [ -f crypto_analytics_dbt/dbt_project.yml ]; then cd crypto_analytics_dbt; fi
+            dbt --version
+            dbt test --profiles-dir . || (echo 'dbt test failed' && exit 1)
+          else
+            echo "GCP_SA_KEY not present; skipping BigQuery adapter install and tests"
+          fi
 
       - name: Generate dbt docs
         run: |
