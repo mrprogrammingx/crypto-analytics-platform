@@ -27,10 +27,13 @@ jobs:
           pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
 
-      - name: Install dbt core and adapters (pinned for compatibility)
+      - name: Install dbt core and duckdb adapter (pinned)
         run: |
-          # Pin to the tested dbt version used in local development
-          pip install dbt-core==1.10.1 dbt-bigquery==1.10.1 dbt-duckdb==1.10.1
+          # Install dbt-core and the fast DuckDB adapter for local/CI duck tests.
+          # We avoid installing dbt-bigquery here to prevent google-cloud libraries
+          # from being importable during pytest (those libraries may attempt to
+          # resolve Application Default Credentials at import time).
+          pip install dbt-core==1.10.1 dbt-duckdb==1.10.1
 
       - name: Run dbt tests using DuckDB (fast, no GCP required)
         run: |
@@ -50,6 +53,19 @@ jobs:
             echo "Configured GOOGLE_APPLICATION_CREDENTIALS"
           else
             echo "GCP_SA_KEY not provided; skipping GCP credentials setup."
+          fi
+
+      - name: Install dbt bigquery adapter (optional)
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          # Install dbt-bigquery only if the GCP key is present; this keeps the
+          # google-cloud libraries out of the pytest environment when credentials
+          # are not provided and avoids ADC-related failures.
+          if [ -n "$GCP_SA_KEY" ]; then
+            pip install dbt-bigquery==1.10.1
+          else
+            echo "Skipping dbt-bigquery install because GCP_SA_KEY is not set."
           fi
 
       - name: Run unit tests (pytest)
