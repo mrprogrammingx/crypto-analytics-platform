@@ -93,6 +93,17 @@ def _get_tracking_table_id(dest_table_id: str, bq_client) -> str:
     if len(parts) == 3:
         project = parts[0]
         dataset = parts[1]
+    elif len(parts) == 1:
+        # dest_table_id was provided as a bare table name (e.g. "btc_trades").
+        # Use the configured DATASET and the client's project to build a
+        # fully-qualified tracking table id.
+        project = getattr(bq_client, "project", None)
+        if not DATASET:
+            raise SystemExit(
+                f"Cannot resolve dataset for destination table id: {dest_table_id}."
+                " Set BIGQUERY_DATASET in config or provide a fully-qualified table id."
+            )
+        dataset = DATASET
     elif len(parts) == 2:
         project = bq_client.project
         dataset = parts[0]
