@@ -12,7 +12,6 @@ jobs:
     permissions:
       contents: read
       pages: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -24,49 +23,18 @@ jobs:
 
       - name: Install runtime deps (if present)
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt || true; fi
 
       - name: Install dbt core and duckdb adapter (pinned)
         run: |
-          # Install dbt-core and the fast DuckDB adapter for local/CI duck tests.
-          # We avoid installing dbt-bigquery here to prevent google-cloud libraries
-          # from being importable during pytest (those libraries may attempt to
-          # resolve Application Default Credentials at import time).
           pip install dbt-core==1.10.1 dbt-duckdb==1.10.1
 
       - name: Run dbt tests using DuckDB (fast, no GCP required)
         run: |
-          cd crypto_analytics_dbt
-          # switch to the duck target defined in profiles.yml
+          if [ -f crypto_analytics_dbt/dbt_project.yml ]; then cd crypto_analytics_dbt; fi
           dbt --version
           dbt test --profiles-dir . --target duck || echo 'duck dbt tests failed (non-fatal)'
-
-      - name: Prepare Google credentials (optional)
-        env:
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-        run: |
-          # Guard inside the shell to avoid using secrets in the 'if' expression
-          if [ -n "$GCP_SA_KEY" ]; then
-            echo "$GCP_SA_KEY" > /tmp/gcp-key.json
-            export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
-            echo "Configured GOOGLE_APPLICATION_CREDENTIALS"
-          else
-            echo "GCP_SA_KEY not provided; skipping GCP credentials setup."
-          fi
-
-      - name: Install dbt bigquery adapter (optional)
-        env:
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
-        run: |
-          # Install dbt-bigquery only if the GCP key is present; this keeps the
-          # google-cloud libraries out of the pytest environment when credentials
-          # are not provided and avoids ADC-related failures.
-          if [ -n "$GCP_SA_KEY" ]; then
-            pip install dbt-bigquery==1.10.1
-          else
-            echo "Skipping dbt-bigquery install because GCP_SA_KEY is not set."
-          fi
 
       - name: Run unit tests (pytest)
         env:
@@ -75,25 +43,38 @@ jobs:
           pip install pytest
           pytest -q
 
-      - name: Run dbt tests
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
+      - name: Prepare Google credentials (optional)
+        if: ${{ secrets.GCP_SA_KEY != '' }}
         run: |
-          cd crypto_analytics_dbt
-          # dbt profiles.yml in this repo uses env_var(); we rely on CI env vars/secrets
+          echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > /tmp/gcp-key.json
+          echo "Wrote GCP key to /tmp/gcp-key.json"
+
+      - name: Install dbt bigquery adapter (optional)
+        if: ${{ secrets.GCP_SA_KEY != '' }}
+        run: |
+          pip install dbt-bigquery==1.10.1
+
+      - name: Run dbt tests (BigQuery)
+        if: ${{ secrets.GCP_SA_KEY != '' }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+        run: |
+          if [ -f crypto_analytics_dbt/dbt_project.yml ]; then cd crypto_analytics_dbt; fi
           dbt --version
           dbt test --profiles-dir . || (echo 'dbt test failed' && exit 1)
 
       - name: Generate dbt docs
         run: |
-          cd crypto_analytics_dbt
+          if [ -f crypto_analytics_dbt/dbt_project.yml ]; then cd crypto_analytics_dbt; fi
           dbt docs generate --profiles-dir .
 
       - name: Upload dbt docs artifact
         uses: actions/upload-artifact@v4
         with:
           name: dbt-docs
-          path: crypto_analytics_dbt/target
+          path: |
+            crypto_analytics_dbt/target
+            target
 
   deploy-docs:
     needs: build-and-test
@@ -107,10 +88,22 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: dbt-docs
-          path: crypto_analytics_dbt/target
+          path: artifacts
+
+      - name: Normalize docs folder for publish
+        run: |
+          if [ -d artifacts/crypto_analytics_dbt/target ]; then
+            rm -rf public || true
+            cp -r artifacts/crypto_analytics_dbt/target public
+          elif [ -d artifacts/target ]; then
+            rm -rf public || true
+            cp -r artifacts/target public
+          else
+            echo "No docs artifact found" && exit 1
+          fi
 
       - name: Deploy docs to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: crypto_analytics_dbt/target
+          publish_dir: public
