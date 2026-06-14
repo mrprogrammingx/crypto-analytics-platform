@@ -117,3 +117,33 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: public
+
+  spark-tests:
+    runs-on: ubuntu-latest
+    # Run Spark tests in a separate job with Java installed
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java (required for PySpark)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dev dependencies (pyspark) and pyarrow
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt || true; fi
+          pip install pyarrow pytest || true
+
+      - name: Run Spark-specific tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: |
+          pytest -q tests/test_read_btc_parquet.py -q
