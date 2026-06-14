@@ -33,3 +33,13 @@ dbt-run-copy:
 dbt-test-copy:
 	@bash scripts/run_dbt_with_copy.sh test
 
+
+.PHONY: spark-test
+spark-test:
+	@echo "Setting up venv (./venv) and running Spark tests"
+	@python3 -m venv venv || true
+	@. venv/bin/activate && python -m pip install --upgrade pip setuptools wheel && \
+	if [ -f requirements-dev.txt ]; then . venv/bin/activate && pip install -r requirements-dev.txt || true; fi && \
+	. venv/bin/activate && pip install pyarrow pytest || true && \
+	. venv/bin/activate && PYTHONPATH=$$PWD pytest -q tests/test_read_btc_parquet.py -q
+

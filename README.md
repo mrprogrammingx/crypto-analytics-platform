@@ -70,6 +70,54 @@ Utilities for configuration and examples live in `config.py` and the
 	WebSocket to Binance and prints trade messages. It exposes a
 	`run_binance_socket()` function and an `on_message()` handler.
 
+Spark — running tests and reading Parquet
+---------------------------------------
+
+This repo includes a small PySpark job (`spark/jobs/read_btc_parquet.py`) and
+tests that exercise timestamp normalization and Parquet reading.
+
+Local requirements
+
+- Java (OpenJDK / Temurin) installed and available on PATH.
+- A Python virtual environment with developer dependencies installed (see
+	`requirements-dev.txt`).
+
+Quick local steps
+
+```bash
+# create and activate a venv
+python3 -m venv .venv
+source .venv/bin/activate
+
+# install dev deps (pyspark) and pyarrow
+pip install --upgrade pip
+pip install -r requirements-dev.txt
+pip install pyarrow
+```
+
+Run the Spark tests (unit-style tests that require a JVM):
+
+```bash
+# from the repo root with venv activated
+make spark-test
+```
+
+Run the PySpark job to read Parquet files (local dir or GCS path):
+
+```bash
+# read a local parquet directory
+python spark/jobs/read_btc_parquet.py --path /tmp/btc_trades --show 20
+
+# read from GCS (runner must have GCS connector/credentials)
+python spark/jobs/read_btc_parquet.py --path gs://my-bucket/btc_trades --show 5
+```
+
+Notes
+- If you run into errors importing PySpark locally, ensure Java is installed
+	(`java -version`) and that you installed `pyspark` into the active venv.
+- The CI already includes a `spark-tests` job which installs Java and runs
+	the Spark-specific tests in an isolated runner.
+
 Local dbt development
 ---------------------
 
