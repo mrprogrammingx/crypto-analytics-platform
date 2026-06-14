@@ -1,0 +1,4 @@
+# Developer-only dependencies
+# pyspark requires a JVM (install OpenJDK/Temurin in CI or locally before pip installing)
+# Pin or set a minimum compatible version here; change if you need a specific Spark runtime
+pyspark>=3.5.0
