@@ -1,8 +1,5 @@
 import subprocess
 import pytest
-import json
-import os
-from pathlib import Path
 
 try:
     subprocess.run(["java", "-version"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
@@ -28,27 +25,24 @@ def write_parquet(path, table):
 
 
 def test_verify_schema_diff(tmp_path):
-    # create two parquet files with same column but different types
+    # two parquet files: same column name, incompatible types
     p1 = tmp_path / "part1.parquet"
     p2 = tmp_path / "part2.parquet"
 
-    # first file: column 'a' as int32
-    t1 = pa.table({"a": pa.array([1, 2], type=pa.int32())})
-    write_parquet(str(p1), t1)
-
-    # second file: column 'a' as string
-    t2 = pa.table({"a": pa.array(["x", "y"], type=pa.string())})
-    write_parquet(str(p2), t2)
+    write_parquet(str(p1), pa.table({"a": pa.array([1, 2], type=pa.int32())}))
+    write_parquet(str(p2), pa.table({"a": pa.array(["x", "y"], type=pa.string())}))
 
     spark = build_spark(app_name="test_verify_schema")
+    try:
+        # Without mergeSchema, Spark infers from a single file's footer and succeeds.
+        df_no_merge = read_with_merge(spark, [str(p1), str(p2)], merge=False)
+        assert dict(df_no_merge.dtypes)["a"] in ("int", "string")
 
-    df_no_merge = read_with_merge(spark, [str(p1), str(p2)], merge=False)
-    df_merge = read_with_merge(spark, [str(p1), str(p2)], merge=True)
-
-    fields_nom = set([(f.name, f.dataType.simpleString()) for f in df_no_merge.schema.fields])
-    fields_mer = set([(f.name, f.dataType.simpleString()) for f in df_merge.schema.fields])
-
-    # There should be a difference between no-merge and merge schemas for column 'a'
-    assert fields_nom != fields_mer
-
-    spark.stop()
+        # With mergeSchema, Spark reconciles footers and fails hard on incompatible
+        # types (INT vs STRING). verify_schema_inference.main() catches this and
+        # falls back to printing per-file schemas.
+        with pytest.raises(Exception) as excinfo:
+            read_with_merge(spark, [str(p1), str(p2)], merge=True)
+        assert "incompatible data types" in str(excinfo.value).lower()
+    finally:
+        spark.stop()
