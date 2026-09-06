@@ -117,6 +117,10 @@ Notes
 	(`java -version`) and that you installed `pyspark` into the active venv.
 - The CI already includes a `spark-tests` job which installs Java and runs
 	the Spark-specific tests in an isolated runner.
+- For the Bronze ingestion pipeline (`spark/jobs/ingest_bronze.py --source
+	gcs`, watermark idempotency, the scheduled workflow, and cutover from the
+	old GCS loaders) see the "Bronze ingestion pipeline" section in
+	`spark/README.md`.
 
 Local dbt development
 ---------------------

@@ -1,3 +1,5 @@
+# Superseded by spark/jobs/ingest_bronze.py --source gcs; kept as a manual fallback.
+
 import duckdb
 from google.cloud import storage
 from config import load_config

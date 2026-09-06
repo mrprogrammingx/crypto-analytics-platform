@@ -43,3 +43,6 @@ spark-test:
 	. venv/bin/activate && pip install pyarrow pytest || true && \
 	. venv/bin/activate && PYTHONPATH=$$PWD pytest -q tests/test_read_btc_parquet.py -q
 
+.PHONY: spark-ingest-bronze
+spark-ingest-bronze:
+	@. venv/bin/activate && PYTHONPATH=$$PWD python spark/jobs/ingest_bronze.py --source gcs

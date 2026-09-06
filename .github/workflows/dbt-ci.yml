@@ -146,7 +146,7 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: |
-          pytest -q tests/test_read_btc_parquet.py -q
+          pytest -q tests/
 
   spark-verify-sample:
     runs-on: ubuntu-latest

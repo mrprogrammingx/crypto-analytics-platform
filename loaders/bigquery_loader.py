@@ -1,3 +1,5 @@
+# Superseded by spark/jobs/ingest_bronze.py --source gcs; kept as a manual fallback.
+
 # Third-party Google Cloud imports are deferred to runtime in _init_runtime()
 
 from config import load_config

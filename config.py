@@ -91,6 +91,9 @@ class Config:
     SMTP_HOST: Optional[str] = os.getenv("SMTP_HOST")
     SMTP_PORT: Optional[str] = os.getenv("SMTP_PORT")
     GCS_BUCKET_NAME: Optional[str] = os.getenv("GCS_BUCKET_NAME")
+    SPARK_BRONZE_LOCAL_PATH: str = os.getenv("SPARK_BRONZE_LOCAL_PATH", "warehouse/bronze/btc_trades")
+    SPARK_BRONZE_GCS_PREFIX: str = os.getenv("SPARK_BRONZE_GCS_PREFIX", "bronze/btc_trades")
+    SPARK_RAW_GCS_PREFIX: str = os.getenv("SPARK_RAW_GCS_PREFIX", "btc_trades")
     BATCH_SIZE: Optional[str] = os.getenv("BATCH_SIZE")
 
 

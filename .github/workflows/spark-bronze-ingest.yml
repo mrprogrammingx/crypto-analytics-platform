@@ -1,0 +1,37 @@
+name: Spark Bronze Ingestion
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ingest-bronze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: 'temurin', java-version: '17' }
+      - uses: actions/setup-python@v4
+        with: { python-version: '3.11' }
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt pyarrow
+      - name: Write GCP credentials
+        run: echo "${{ secrets.GCP_SA_KEY }}" | base64 --decode > /tmp/gcp-key.json
+      - name: Run Spark Bronze ingestion
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
+          GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME }}
+        run: python spark/jobs/ingest_bronze.py --source gcs
+      - name: Refresh BigQuery external table
+        if: ${{ secrets.GCP_SA_KEY != '' }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+          GOOGLE_CLOUD_PROJECT: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
+          BIGQUERY_TABLE_ID: crypto_analytics.btc_trades
+          GCS_BUCKET_NAME: ${{ secrets.GCS_BUCKET_NAME }}
+        run: python scripts/create_bigquery_external_table.py
